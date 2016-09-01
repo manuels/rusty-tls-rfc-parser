@@ -10,10 +10,10 @@ class ParseNamedStructureTest(ParserTest):
         '4.6.  Constructed Types'
         expected = {
             'name':        Symbol('T'),
-            'structure_fields': [
-                {'name': 'f1', 'type': 'T1'},
-                {'name': 'f2', 'type': 'T2'},
-                {'name': 'fn', 'type': 'Tn'},
+            'fields': [
+                {'name': Symbol('f1'), 'type': Type('T1')},
+                {'name': Symbol('f2'), 'type': Type('T2')},
+                {'name': Symbol('fn'), 'type': Type('Tn')},
             ]
         }
         code = '''struct {
@@ -29,12 +29,12 @@ class ParseUnnamedStructureTest(ParserTest):
     test_obj = UnnamedStructure
 
     def test_anonymous_struct(self):
-        '4.6.  Constructed Types'
+#        '4.6.  Constructed Types'
         expected = {
-            'structure_fields': [
-                {'name': 'f1', 'type': 'T1'},
-                {'name': 'f2', 'type': 'T2'},
-                {'name': 'fn', 'type': 'Tn'},
+            'fields': [
+                {'name': Symbol('f1'), 'type': Type('T1')},
+                {'name': Symbol('f2'), 'type': Type('T2')},
+                {'name': Symbol('fn'), 'type': Type('Tn')},
             ]
         }
         code = '''struct {
@@ -48,9 +48,7 @@ class ParseUnnamedStructureTest(ParserTest):
 
     def test_empty_anonymous_struct(self):
         'A.4.1.  Hello Messages'
-        expected = {
-            'structure_fields': []
-        }
+        expected = {'fields': []}
         code = 'struct {};'
 
         self.assert_parse_equal(code, expected)

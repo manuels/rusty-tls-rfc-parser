@@ -1,6 +1,6 @@
 from pypeg2 import Symbol
 
-from grammar import InternalEnum, ExternalEnum, Int
+from grammar import InternalEnum, ExternalEnum, ExternalEnumEntry, Int
 from tests.parser_test import ParserTest
 
 class ParseExternalEnumTest(ParserTest):

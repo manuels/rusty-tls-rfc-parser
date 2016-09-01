@@ -9,22 +9,22 @@ class ParseConstantVectorFieldTest(ParserTest):
     def test_constant_uint8_vector(self):
         expected = {
             'name':        Symbol('Data'),
-            'vector_size': Int('3'),
+            'vector_size': Int('9'),
             'vector_type': Type('uint8')
         }
-        code = 'uint8 Data[3];'
+        code = 'uint8 Data[9];'
 
         self.assert_parse_equal(code, expected)
 
 
     def test_constant_custom_type_vector(self):
-        '''Section 4.3 Vectors'''
+        '''Section 4.3 Vectors (see errata)'''
         expected = {
             'name':        Symbol('Data'),
-            'vector_size': Int('9'),
+            'vector_size': Int('3'),
             'vector_type': Type('Datum')
         }
-        code = 'Datum Data[9];'
+        code = 'Datum Data[3];'
         self.assert_parse_equal(code, expected)
 
 

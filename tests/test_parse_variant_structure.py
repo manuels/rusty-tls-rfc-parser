@@ -10,7 +10,7 @@ class ParseNamedVariantStructureTest(ParserTest):
         '4.6.  Constructed Types'
         expected = {
             'name':        Symbol('T'),
-            'structure_fields': [
+            'fields': [
                 {'name': 'f1', 'type': 'T1'},
                 {'name': 'f2', 'type': 'T2'},
                 {'name': 'fn', 'type': 'Tn'},
@@ -29,6 +29,7 @@ class ParseNamedVariantStructureTest(ParserTest):
         '4.6.1.  Variants'
         expected = {
             'name':        Symbol('VariantRecord'),
+            'fields': [],
             'structure_variant': {
                 'name': Symbol('variant_body'),
                 'variant_type': Type('VariantTag'),
@@ -61,7 +62,7 @@ class ParseNamedVariantStructureTest(ParserTest):
         '7.4.  Handshake Protocol'
         expected = {
             'name':        Symbol('Handshake'),
-            'structure_fields': [{
+            'fields': [{
                 'name': 'msg_type',
                 'type': 'HandshakeType',
             },{

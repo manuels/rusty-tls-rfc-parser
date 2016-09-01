@@ -6,8 +6,119 @@ class Type(Symbol):
 class Int(Symbol):
     pass
 
+class Definitions(List):
+    pass # grammar will be defined at the end of this file
+
+'''
+4.7.  Cryptographic Attributes
+
+   The five cryptographic operations -- digital signing, stream cipher
+   encryption, block cipher encryption, authenticated encryption with
+   additional data (AEAD) encryption, and public key encryption -- are
+   designated digitally-signed, stream-ciphered, block-ciphered, aead-
+   ciphered, and public-key-encrypted, respectively.  A field's
+   cryptographic processing is specified by prepending an appropriate
+   key word designation before the field's type specification.
+   Cryptographic keys are implied by the current session state (see
+   Section 6.1).
+
+   A digitally-signed element is encoded as a struct DigitallySigned:
+
+      struct {
+         SignatureAndHashAlgorithm algorithm;
+         opaque signature<0..2^16-1>;
+      } DigitallySigned;
+
+   The algorithm field specifies the algorithm used (see Section
+   7.4.1.4.1 for the definition of this field).  Note that the
+   introduction of the algorithm field is a change from previous
+   versions.  The signature is a digital signature using those
+   algorithms over the contents of the element.  The contents themselves
+   do not appear on the wire but are simply calculated.  The length of
+   the signature is specified by the signing algorithm and key.
+
+   In RSA signing, the opaque vector contains the signature generated
+   using the RSASSA-PKCS1-v1_5 signature scheme defined in [PKCS1].  As
+   discussed in [PKCS1], the DigestInfo MUST be DER-encoded [X680]
+   [X690].  For hash algorithms without parameters (which includes
+   SHA-1), the DigestInfo.AlgorithmIdentifier.parameters field MUST be
+   NULL, but implementations MUST accept both without parameters and
+   with NULL parameters.  Note that earlier versions of TLS used a
+   different RSA signature scheme that did not include a DigestInfo
+   encoding.
+
+   In DSA, the 20 bytes of the SHA-1 hash are run directly through the
+   Digital Signing Algorithm with no additional hashing.  This produces
+   two values, r and s.  The DSA signature is an opaque vector, as
+   above, the contents of which are the DER encoding of:
+
+      Dss-Sig-Value ::= SEQUENCE {
+          r INTEGER,
+          s INTEGER
+      }
+
+   Note: In current terminology, DSA refers to the Digital Signature
+   Algorithm and DSS refers to the NIST standard.  In the original SSL
+   and TLS specs, "DSS" was used universally.  This document uses "DSA"
+   to refer to the algorithm, "DSS" to refer to the standard, and it
+   uses "DSS" in the code point definitions for historical continuity.
+
+   In stream cipher encryption, the plaintext is exclusive-ORed with an
+   identical amount of output generated from a cryptographically secure
+   keyed pseudorandom number generator.
+
+   In block cipher encryption, every block of plaintext encrypts to a
+   block of ciphertext.  All block cipher encryption is done in CBC
+   (Cipher Block Chaining) mode, and all items that are block-ciphered
+   will be an exact multiple of the cipher block length.
+
+   In AEAD encryption, the plaintext is simultaneously encrypted and
+   integrity protected.  The input may be of any length, and aead-
+   ciphered output is generally larger than the input in order to
+   accommodate the integrity check value.
+
+   In public key encryption, a public key algorithm is used to encrypt
+   data in such a way that it can be decrypted only with the matching
+   private key.  A public-key-encrypted element is encoded as an opaque
+   vector <0..2^16-1>, where the length is specified by the encryption
+   algorithm and key.
+
+   RSA encryption is done using the RSAES-PKCS1-v1_5 encryption scheme
+   defined in [PKCS1].
+
+   In the following example
+
+      stream-ciphered struct {
+          uint8 field1;
+          uint8 field2;
+          digitally-signed opaque {
+            uint8 field3<0..255>;
+            uint8 field4;
+          };
+      } UserType;
+
+   The contents of the inner struct (field3 and field4) are used as
+   input for the signature/hash algorithm, and then the entire structure
+   is encrypted with a stream cipher.  The length of this structure, in
+   bytes, would be equal to two bytes for field1 and field2, plus two
+   bytes for the signature and hash algorithm, plus two bytes for the
+   length of the signature, plus the length of the output of the signing
+   algorithm.  The length of the signature is known because the
+   algorithm and key used for the signing are known prior to encoding or
+   decoding this structure.
+'''
+class CryptographicAttribute(Keyword):
+    regex = re.compile(r'\w+-\w+')
+    grammar = Enum(K('digitally-signed'), \
+                   K('stream-ciphered'), \
+                   K('block-ciphered'), \
+                   K('aead-ciphered'), \
+                   K('public-key-encrypted'))
+
+
 class ScalarField:
-    grammar = attr('type', Type), name(), ';'
+    grammar = optional(attr('cryptographic_attribute', CryptographicAttribute)), \
+              attr('type', Type), name(), ';'
 
 '''
 4.3.  Vectors
@@ -57,7 +168,6 @@ class ScalarField:
       uint16 longer<0..800>;
             /* zero to 400 16-bit unsigned integers */
 '''
-
 class VariableVectorBounds:
     grammar = '<', attr('floor', Int), '..', attr('ceiling', Int), '>'
 
@@ -107,20 +217,20 @@ class ConstantVectorField:
 
       enum { low, medium, high } Amount;
 '''
-class ExternalEnumEntry():
+class ExternalEnumEntry:
     grammar = name(), '(', attr('value', Int), ')'
 
 class ExternalEnum(Namespace):
-    grammar = 'enum', '{', attr('enum_entries', csl(ExternalEnumEntry)), \
+    grammar = 'enum', '{', csl(ExternalEnumEntry), \
                         optional(',', '(', attr('enum_width', Int), ')'), \
                    '}', \
               optional(name()), ';'
 
-class InternalEnumEntry():
+class InternalEnumEntry:
     grammar = name()
 
 class InternalEnum(Namespace):
-    grammar = 'enum', '{', attr('enum_entries', csl(InternalEnumEntry)), '}', name(), ';'
+    grammar = 'enum', '{', csl(InternalEnumEntry), '}', name(), ';'
 
 '''
 4.6.1.  Variants
@@ -177,10 +287,10 @@ class InternalEnum(Namespace):
           } variant_body;       /* optional label on variant */
       } VariantRecord;
 '''
-class VariantCase():
+class VariantCase:
     grammar = attr('cases', some('case', Symbol, ':')), attr('type', Type), ';'
 
-class Variant():
+class Variant(Namespace):
     grammar = 'select', '(', attr('variant_type', Type), ')', '{', \
                   attr('variant_cases', some(VariantCase)), \
               '}', name(), ';'
@@ -205,14 +315,19 @@ class Variant():
    T.f2 refers to the second field of the previous declaration.
    Structure definitions may be embedded.
 '''
+class UnnamedStructure(Namespace):
+    # this is not a Namespace, because Namespaces need names
+    grammar = optional(attr('cryptographic_attribute', CryptographicAttribute)), \
+              'struct', '{', Definitions, '}', ';'
+
 class NamedStructure(Namespace):
-    grammar = 'struct', '{', \
-                             optional(attr('structure_fields', some(ScalarField))), \
+    grammar = optional(attr('cryptographic_attribute', CryptographicAttribute)), \
+              'struct', '{', \
+                             Definitions, \
                              optional(attr('structure_variant', Variant)), \
                         '}', name(), ';'
 
-
-class UnnamedStructure():
-    # this is not a Namespace, because Namespaces need names
-    grammar = 'struct', '{', attr('structure_fields', maybe_some(ScalarField)), '}', ';'
+Definitions.grammar = maybe_some([ScalarField, VariableVectorField,
+                                  ConstantVectorField, NamedStructure,
+                                  UnnamedStructure])
 
