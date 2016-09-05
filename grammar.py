@@ -329,5 +329,5 @@ class NamedStructure(Namespace):
 
 Definitions.grammar = maybe_some([ScalarField, VariableVectorField,
                                   ConstantVectorField, NamedStructure,
-                                  UnnamedStructure])
+                                  UnnamedStructure, ExternalEnum, InternalEnum])
 
